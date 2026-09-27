@@ -151,12 +151,16 @@ def main():
 
     out = Path(a.out_dir); out.mkdir(parents=True, exist_ok=True)
     tg = ptg.Textgrid()
+    dropped = []
     for spk in sorted({r[0] for r in final}):
         ents, last = [], 0.0
         for _, s, e, w, _src in [r for r in final if r[0] == spk]:
-            s, e = max(s, last), min(e, dur)
-            if e - s > 1e-6:
-                ents.append((s, e, w)); last = e
+            lo, hi = max(s, last), min(e, dur)
+            if hi - lo > 1e-6:
+                ents.append((lo, hi, w)); last = hi
+            else:
+                # Fully swallowed by the previous word — a Praat tier cannot hold it. Used to vanish silently.
+                dropped.append((spk, s, w))
         tg.addTier(ptg.IntervalTier(spk, ents, 0, dur))
     tg.save(str(out / f"{stem}_words.TextGrid"), format="long_textgrid", includeBlankSpaces=True)
 
@@ -166,7 +170,17 @@ def main():
             for spk, s, e, w, src in final]
     pd.DataFrame(rows, columns=["onset", "offset", "Duration"] + speakers + ["timing_source"]).to_excel(
         out / f"{stem}_words.xlsx", index=False)
-    print(f"[done] {len(final)} words, speakers {speakers}")
+    if dropped:
+        print(f"\n  [warn] {len(dropped)} word(s) overlapped the word before them and could NOT be given a slot\n"
+              f"         in the TextGrid. They ARE in the .xlsx, so nothing is lost from the data - but they are\n"
+              f"         missing from the file you clean in Praat, and you will have to place them by ear:")
+        for spk, s, w in dropped[:12]:
+            print(f"           {w!r} at {s:.3f}s on {spk}")
+        if len(dropped) > 12:
+            print(f"           ... and {len(dropped) - 12} more")
+
+    n_tg = sum(len(tg.getTier(t).entries) for t in tg.tierNames)
+    print(f"[done] {len(final)} words ({n_tg} in the TextGrid), speakers {speakers}")
     print(f"       -> {out / (stem + '_words.TextGrid')}\n       -> {out / (stem + '_words.xlsx')}")
 
 

@@ -144,6 +144,11 @@ and compare the `timing_source` column. If `--no-g2p` keeps winning, make it the
 
 ## Things that will bite you
 
+- **A Praat tier cannot hold two words at once.** When a word's interval is entirely swallowed by the one
+  before it, step 4 has to leave it out — this used to happen *silently*, so the `[done]` line claimed 276 words
+  while the TextGrid held 263. Step 4 now names every dropped word and its timestamp, and prints both counts.
+  The words are still in the `.xlsx`; they are missing only from the file the annotator opens. In practice these
+  are always words that fell back to Whisper's timing, so this is downstream of the g2p problem above.
 - **MFA's exported TextGrids drop the first word of every utterance** (MFA 3.1.0 bug; it hit 11 of 12 files in
   one project). Step 4 therefore reads MFA's **database**, `~/Documents/MFA/<corpus>/<corpus>.db`, and finds it
   automatically. The exported TextGrids are a fallback only (`--mfa-out`).
