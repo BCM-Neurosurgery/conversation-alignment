@@ -1,0 +1,13 @@
+# Shell scripts MUST stay LF. Linux bash rejects CRLF with the unhelpful
+# "syntax error: unexpected end of file" — this has already cost us once.
+* text=auto
+*.sh   text eol=lf
+*.py   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
+
+# Batch files are Windows-only; CRLF is what cmd.exe expects.
+*.bat  text eol=crlf
+
+*.pdf  binary
