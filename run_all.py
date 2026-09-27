@@ -176,6 +176,9 @@ def main():
                     help="exact number of people talking, when you know it (best answer)")
     ap.add_argument("--max-speakers", type=int, default=5, help="upper bound when --speakers is not given")
     ap.add_argument("--no-diarize", action="store_true")
+    ap.add_argument("--no-g2p", action="store_true",
+                    help="do not let MFA invent pronunciations for unknown words. On our test clip this "
+                         "ALIGNED MORE WORDS (286/286 vs 277) - see TECHNICAL_NOTES")
     ap.add_argument("--no-ask", action="store_true", help="never prompt (for scripts and cluster jobs)")
     ap.add_argument("--skip-whisper", action="store_true", help="reuse 01_whisper/<stem>.words.csv")
     ap.add_argument("--skip-mfa", action="store_true", help="build the corpus, run MFA yourself, then step 4")
@@ -219,14 +222,17 @@ Run step 3 where MFA lives (lab cluster, or a local conda env - see README):
     conda activate mfa2
     python step3_mfa_align.py "{d2}" "{d3}"
 
-then finish with:
+then switch BACK before step 4 - it needs pandas, which lives in the other environment:
 
+    conda activate whisper
     python step4_textgrid.py "{d2 / (stem + '.sidecar.json')}" "{out}"
 --------------------------------------------------------------------------""")
         return
 
     if env:
         print(f"\n[mfa ] using the '{env}' environment - you do not need to switch to it yourself")
+    if a.no_g2p:
+        step3 = step3 + ["--g2p", ""]
     run(step3 + [d2, d3])
     cmd = [sys.executable, HERE / "step4_textgrid.py", d2 / f"{stem}.sidecar.json", out]
     if not sorted((Path.home() / "Documents" / "MFA").glob(f"{d2.name}/*.db")):

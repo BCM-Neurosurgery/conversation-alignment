@@ -1,5 +1,0 @@
-whisperx
-soundfile
-pandas
-praatio
-openpyxl

@@ -89,7 +89,7 @@ to finish:
 python step1_whisper.py     audio.wav out/01_whisper
 python step2_mfa_corpus.py  audio.wav out/01_whisper/audio.words.csv out/02_mfa_corpus
 python step3_mfa_align.py   out/02_mfa_corpus out/03_mfa_out          # in the MFA env / on the cluster
-python step4_textgrid.py    out/02_mfa_corpus/audio.sidecar.json out
+python step4_textgrid.py    out/02_mfa_corpus/audio.sidecar.json out   # back in the whisper env - needs pandas
 ```
 
 ### Output
@@ -111,6 +111,34 @@ to open an existing word table in Praat. Round-trip is lossless (verified: 3,413
 
 **`timing_source`** is `mfa` for a properly aligned word, `whisper` for the few MFA merged or dropped (those
 keep Whisper's late timing) — **check those first** when cleaning.
+
+---
+
+## ⚠️ Open question: the g2p model may be costing us words (2026-09-27)
+
+`--g2p_model_path` lets MFA invent a pronunciation for a word it does not know (names, "AFOs", "2002"). On the
+one clip we have measured, **turning it OFF aligned strictly more words**:
+
+| | MFA aligned | fell back to Whisper timing | words in the final TextGrid |
+|---|---|---|---|
+| g2p **on** (current default) | 280 | **22** | **277** |
+| g2p **off** | 287 | **0** | **286** |
+
+Same audio, same corpus, same MFA 3.1.0. With g2p on, 9 of 286 words are **missing from the TextGrid entirely**
+and the fallback words land out of temporal order. The earlier "verified end-to-end" run shows the same 22
+fallbacks, so this is long-standing behaviour, not a regression.
+
+Plausible mechanism: a bad invented pronunciation makes MFA mis-segment or fail the utterance containing it, and
+every word in it then keeps Whisper's ~65 ms-late timing.
+
+**This is n=1** — a 2-minute single-speaker clip. Before changing the default, run both ways on a real recording:
+
+```bash
+python run_all.py <wav> <out_a> --speakers N
+python run_all.py <wav> <out_b> --speakers N --no-g2p
+```
+
+and compare the `timing_source` column. If `--no-g2p` keeps winning, make it the default.
 
 ---
 
