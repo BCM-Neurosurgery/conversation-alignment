@@ -1,0 +1,16 @@
+# Environment 2 of 2 — the Montreal Forced Aligner (step 3), which is what makes the word onsets trustworthy.
+#   conda env create -f environment_mfa.yml
+#
+# Pinned to 3.1.0 on purpose: conda-forge >= 3.2 pulls a kalpy without G2PCompiler and the g2p model fails.
+# Python is deliberately NOT pinned here — MFA picks the interpreter it wants.
+#
+# Apple Silicon: if this fails to solve, build it as Intel and let Rosetta run it —
+#   CONDA_SUBDIR=osx-64 conda env create -f environment_mfa.yml
+#   conda activate mfa2 && conda config --env --set subdir osx-64
+name: mfa2
+channels:
+  - conda-forge
+dependencies:
+  - montreal-forced-aligner=3.1.0
+  - joblib=1.4.2
+  - setuptools<81

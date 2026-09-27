@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# This repository is CODE ONLY. Recordings and transcripts are patient data and
+# must never be committed — not even a short clip, not even "just for testing".
+# ─────────────────────────────────────────────────────────────────────────────
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.aif
+*.aiff
+*.mp4
+*.TextGrid
+*.textgrid
+*.xlsx
+*.xls
+*.csv
+
+# pipeline output
+01_whisper/
+02_mfa_corpus/
+03_mfa_out/
+*_out/
+*.sidecar.json
+*.whisperx.json
+
+# local junk
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/

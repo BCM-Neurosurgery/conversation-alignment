@@ -1,0 +1,16 @@
+# Environment 1 of 2 — transcription (step 1) and the Excel converter.
+#   conda env create -f environment_whisper.yml
+# Kept separate from the aligner: MFA pins old libraries that fight with whisperx.
+name: whisper
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ffmpeg          # whisperx shells out to it to read audio; pip does NOT provide the binary
+  - pip
+  - pip:
+      - whisperx
+      - soundfile
+      - pandas
+      - praatio
+      - openpyxl
