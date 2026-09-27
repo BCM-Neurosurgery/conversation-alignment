@@ -20,33 +20,44 @@ our conversations against two independent forced aligners. MFA removes that. Ski
 hand-correcting a systematic error on every word. (In one file that step was skipped and two-thirds of its word
 onsets had to be corrected after the fact.)
 
-Hand-cleaning afterwards is still required: see `SOP_Convo_Praat_Cleaning.md`.
+Hand-cleaning afterwards is still required: see `docs/SOP_Convo_Praat_Cleaning.pdf`.
 
 ---
 
 ## Install
 
-**A. Whisper (step 1)** — any Python 3.10+ environment with a GPU if you have one:
-```bash
-pip install whisperx soundfile pandas praatio openpyxl
+One script builds both environments and downloads the aligner's English models:
+
+```bat
+setup_windows.bat          :: Windows, from Anaconda Prompt
 ```
+```bash
+bash setup_mac.sh          # macOS / Linux
+```
+
+It is just a wrapper around the two environment files, so you can do it by hand instead:
+
+```bash
+conda env create -f environment_whisper.yml      # transcription + the Excel converter
+conda env create -f environment_mfa.yml          # the aligner
+conda run -n mfa2 mfa model download acoustic   english_us_arpa
+conda run -n mfa2 mfa model download dictionary english_us_arpa
+conda run -n mfa2 mfa model download g2p        english_us_arpa
+```
+
+`python check_setup.py` verifies all of it and prints the exact command for anything missing.
+
+**Two environments, not one**, because MFA pins old libraries that fight with whisperx. ⚠️ MFA must be **3.1.0** —
+conda-forge ≥3.2 pins a `kalpy` without `G2PCompiler`. **ffmpeg is a real dependency** of whisperx (it shells out
+to read audio) and pip does not provide the binary, so it is in `environment_whisper.yml`.
+
 Diarization ("who spoke") additionally needs a free HuggingFace account:
 1. accept the terms on **both** https://huggingface.co/pyannote/segmentation-3.0 and
    https://huggingface.co/pyannote/speaker-diarization-3.1
 2. `huggingface-cli login` (or put the token in `~/.cache/huggingface/token`)
 
-Without that, step 1 still runs and puts every word on one speaker — it prints a clear message and keeps going.
-
-**B. MFA (step 2)** — a separate conda environment, because MFA pins old libraries:
-```bash
-conda create -n mfa2 -c conda-forge montreal-forced-aligner=3.1.0 "joblib=1.4.2" "setuptools<81"
-conda activate mfa2
-mfa model download acoustic english_us_arpa
-mfa model download dictionary english_us_arpa
-mfa model download g2p english_us_arpa        # lets MFA pronounce names/acronyms it doesn't know
-```
-⚠️ Use **3.1.0**. conda-forge ≥3.2 is currently broken (it pins a `kalpy` that lacks `G2PCompiler`).
-MFA is CPU-only and happily runs on a cluster node; on the lab cluster there is already an `mfa2` env.
+Without it every word lands on one speaker — `run_all.py` warns about this **before** the run starts rather than
+letting you discover it afterwards.
 
 ---
 
@@ -68,8 +79,12 @@ guesses up to `--max-speakers` (default 5). A known headcount is by far the bigg
 the guess is what splits one person across two labels. `--speakers 1` skips diarization entirely. `--no-ask`
 suppresses all prompting for scripts and cluster jobs (it is implied when stdin is not a terminal).
 
-If MFA lives elsewhere (e.g. the cluster), run steps 1–2 here, MFA there, step 4 here — `run_all.py` prints the
-exact commands when it cannot find `mfa`:
+**You do not switch environments.** `run_all.py` looks for `mfa` on PATH, and failing that for a conda env named
+`mfa2` (or `mfa`), which it drives with `conda run -n mfa2 --no-capture-output`. Switching environments by hand
+mid-pipeline was the single most confusing step for annotators.
+
+If there is no MFA anywhere (e.g. it lives on the cluster), steps 1–2 still run and it prints the exact commands
+to finish:
 ```bash
 python step1_whisper.py     audio.wav out/01_whisper
 python step2_mfa_corpus.py  audio.wav out/01_whisper/audio.words.csv out/02_mfa_corpus

@@ -20,7 +20,7 @@ Notes kept from painful experience:
   each utterance on export). Step 4 finds the database itself.
 """
 from __future__ import annotations
-import argparse, shutil, subprocess, sys, time
+import argparse, re, shutil, subprocess, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -36,6 +36,30 @@ def run(cmd, check=True, quiet=False):
     return r
 
 
+def mfa_version() -> tuple:
+    r = subprocess.run(["mfa", "version"], capture_output=True, text=True)
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", r.stdout + r.stderr)
+    return tuple(int(x) for x in m.groups()) if m else ()
+
+
+def model_file(kind: str, name: str) -> str | None:
+    """Turn a model NAME into the file MFA wants, or None if we cannot find it.
+
+    `--g2p_model_path` takes a real file: MFA 3.1 resolved a bare name, 3.2 does not and dies with
+    "File 'english_us_arpa' does not exist". Downloaded models live in ~/Documents/MFA/pretrained_models/<kind>/.
+    """
+    if not name:
+        return None
+    if Path(name).exists():
+        return name
+    root = Path.home() / "Documents" / "MFA" / "pretrained_models" / kind
+    for ext in (".zip", ".dict", ".yaml"):
+        p = root / f"{name}{ext}"
+        if p.exists():
+            return str(p)
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("corpus_dir"); ap.add_argument("output_dir")
@@ -49,6 +73,17 @@ def main():
         raise SystemExit("'mfa' was not found.\n"
                          "You are probably in the wrong environment — run:  conda activate mfa2\n"
                          "(and if that fails, the environment was never made: see the setup steps in the guide)")
+
+    v = mfa_version()
+    if v[:2] >= (3, 2):
+        # Fail here, not 20 minutes in: on 3.2 the run dies inside kalpy with an opaque TypeError.
+        raise SystemExit(
+            "This is Montreal Forced Aligner " + ".".join(map(str, v)) + ", and alignment breaks on 3.2 "
+            "and later:\n"
+            "  TrainingGraphCompiler.__init__() got an unexpected keyword argument 'use_g2p'\n"
+            "Rebuild the environment, which pins the version that works:\n"
+            "    conda env remove -n mfa2 -y\n"
+            "    conda env create -f environment_mfa.yml")
 
     corpus, out = Path(a.corpus_dir).resolve(), Path(a.output_dir).resolve()
     if not corpus.is_dir():
@@ -72,7 +107,13 @@ def main():
     if cfg.exists():
         cmd += ["--config_path", cfg]
     if a.g2p:
-        cmd += ["--g2p_model_path", a.g2p]
+        g2p = model_file("g2p", a.g2p)
+        if g2p:
+            cmd += ["--g2p_model_path", g2p]
+        else:
+            # Only affects words MFA has never seen (names, acronyms); the alignment is still good without it.
+            print(f"\n[note] no g2p model file found for '{a.g2p}' - continuing without it. Unknown words fall\n"
+                  f"       back to MFA's own guess. To fix:  mfa model download g2p {a.g2p}")
     cmd += [corpus, a.dictionary, a.acoustic, out]
     t0 = time.time()
     run(cmd)

@@ -72,6 +72,15 @@ def main():
         line("ok" if code == 0 else "X", f"{env_mfa} env", f"aligner version {ver}")
         if code:
             problems.append("conda env create -f environment_mfa.yml")
+        elif tuple(int(x) for x in ver.split(".")[:2] if x.isdigit()) >= (3, 2):
+            line("X", "version", f"{ver} breaks during alignment - 3.1.0 is the one that works")
+            # Only ever offer to delete the environment this package created. An 'mfa' env belongs to
+            # whoever made it and may be in use by other work; 'mfa2' takes precedence anyway.
+            if env_mfa == "mfa2":
+                problems += ["conda env remove -n mfa2 -y", "conda env create -f environment_mfa.yml"]
+            else:
+                problems.append("conda env create -f environment_mfa.yml"
+                                f"   (leaves your '{env_mfa}' env alone; the new mfa2 is used first)")
         else:
             _, models = sh([conda, "run", "-n", env_mfa, "mfa", "model", "list", "acoustic"])
             if "english_us_arpa" in models:

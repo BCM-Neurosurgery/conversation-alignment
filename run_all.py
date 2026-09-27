@@ -141,7 +141,11 @@ def wizard(a):
     print("=" * 74)
     print("  RECORDING  ->  TRANSCRIPT       answer a few questions, then leave it alone")
     print("=" * 74)
-    wav = Path(a.wav).expanduser().resolve() if a.wav else ask_audio()
+    wav = Path(a.wav).expanduser().resolve() if a.wav else None
+    if wav and not wav.exists():
+        print(f"\nI cannot find the recording you named:\n   {wav}")
+        wav = None
+    wav = wav or ask_audio()
     out = (Path(a.out_dir).expanduser().resolve() if a.out_dir
            else ask_out(wav.parent / f"{wav.stem}_out"))
     n = a.speakers if a.speakers else ask_speakers()
