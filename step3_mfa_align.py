@@ -61,6 +61,7 @@ def model_file(kind: str, name: str) -> str | None:
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("corpus_dir"); ap.add_argument("output_dir")
     ap.add_argument("--dictionary", default="english_us_arpa")

@@ -48,6 +48,7 @@ def load_model(name, dev):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("wav"); ap.add_argument("out_dir")
     ap.add_argument("--model", default="large-v3")

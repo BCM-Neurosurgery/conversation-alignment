@@ -24,7 +24,7 @@ Notes
   punctuated word back into the final TextGrid, so nothing is lost.
 """
 from __future__ import annotations
-import argparse, json, re, shutil
+import argparse, json, re, shutil, sys
 from pathlib import Path
 
 GAP_S = 0.35          # a pause longer than this starts a new utterance
@@ -47,6 +47,7 @@ def norm(w: str) -> str:
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("wav"); ap.add_argument("words_csv"); ap.add_argument("corpus_dir")
     a = ap.parse_args()

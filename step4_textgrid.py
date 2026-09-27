@@ -24,7 +24,7 @@ Outputs:
                             like ?? or haha, which MFA cannot align, so it keeps the time it already had)
 """
 from __future__ import annotations
-import argparse, json, re, sqlite3
+import argparse, json, re, sqlite3, sys
 from pathlib import Path
 
 SIL = {"<eps>", "", "sil", "spn_sil", "sp", "spn", "<unk>"}
@@ -100,6 +100,7 @@ def match_utterance(mfa_rows, tokens):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("sidecar"); ap.add_argument("out_dir")
     ap.add_argument("--db", help="MFA database; if omitted, searched for under --mfa-root")
